@@ -1,0 +1,142 @@
+---
+title: "BF_6"
+output: html_document
+date: "2024-10-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(readr)
+library(ggplot2)
+library(forecast)
+library(fpp)
+library(fpp2)
+
+#create timeseries
+data <- read.csv("C:/Users/mansi gopani/Downloads/flightvolume.csv")
+flight <- data$reslong
+
+#. Verify how much history to include in your analysis.
+
+#It shows significant seasonal patterns and a trend that varies over time (increasing up to 2030 and then decreasing after that).To effectively capture both seasonality and the trend, it would be ideal to include as much historical data as possible to understand long-term changes.However, if the goal is to fully understand the underlying seasonal patterns and detect potential structural changes, including the entire time series from 2000 would be best. This way, you can observe all significant historical trends and cycles, which will improve the robustness of any forecasting models you use.
+
+
+flight_ts <- ts(flight, frequency = 12 , start = c(2000,1))
+flight_ts
+plot(flight_ts)
+acf(flight_ts)
+
+#. Hypothesize if the dataset has trend, seasonality, or both.
+
+#Based on the time series decomposition plot it appears that the dataset exhibits both trend and seasonality.Trend: The "trend" plot suggests that there is a non-constant long-term pattern in the data. There are clear fluctuations over time, indicating a trend that increases, levels off, and decreases again.Seasonality: The "seasonal" component plot shows a repeating pattern over regular intervals, suggesting strong seasonality. This is indicative of some form of cyclic behavior in the data.Thus, the dataset exhibits both trend and seasonality
+
+
+#decomposition
+decomp_ts <- decompose(flight_ts)
+plot(decomp_ts)
+
+#naive
+naive_fc <- naive(flight_ts, h = 12)
+plot(naive_fc)
+accuracy(naive_fc)
+
+#average
+mean_fc <- meanf(flight_ts, h = 12)
+plot(mean_fc)
+accuracy(mean_fc)
+
+#exponential smoothing
+ets_fc <- ets(flight_ts)
+ets_fc <- forecast(ets_fc, h = 12)
+plot(ets_fc)
+accuracy(ets_fc)
+
+#holtwinters
+hw_fc <- HoltWinters(flight_ts)
+hw_fc <- forecast(hw_fc, h = 12)
+plot(hw_fc)
+accuracy(hw_fc)
+
+#decomposition
+decomp_fc <- stl(flight_ts, s.window = "periodic")
+decomp_fc <- forecast(decomp_fc, h = 12)
+plot(decomp_fc)
+accuracy(decomp_fc)
+
+decomp_add <- decompose(flight_ts, type="additive")
+decomp_multi <- decompose(flight_ts, type="multiplicative")
+
+# Decomposition Forecasts using trend component
+decomp_add_fc <- forecast(decomp_add$trend, h=12)
+decomp_multi_fc <- forecast(decomp_multi$trend,h=12)
+
+
+final_fc <- forecast(hw_fc, h = 12) 
+plot(final_fc)
+
+
+#Verify using ACF:
+
+#The ACF plot reveals significant spikes at various lags, confirming autocorrelation and indicating the presence of both trend and seasonality in the time series data.
+
+#Verify using decomposition:
+
+#The decomposition of the time series shows three components: trend, seasonal, and random (residual) parts. The trend highlights the upward and downward changes over time, while the seasonal component indicates repeating patterns. This confirms that the time series is influenced by both long-term trends and seasonality.
+#Choose an accuracy measure:
+
+#Common accuracy measures like Mean Absolute Error (MAE), Root Mean Square Error (RMSE), and Mean Absolute Percentage Error (MAPE) are used to evaluate the forecasting performance of different models and compare their accuracy.
+
+#Create a forecast model for the next 12 months:
+
+#Various models were created, including Naive, Average (Mean), Exponential Smoothing (ETS), Holt-Winters, and Decomposition (both additive and multiplicative). Each of these models has a different level of complexity and captures trend and seasonality differently.
+
+#Show model rank with accuracy measures:
+
+#The models can be ranked based on their accuracy measures. Generally, more sophisticated models like Holt-Winters and ETS are expected to outperform simpler models like Naive and Average, as they consider both the trend and seasonal variations.
+
+#Choose models for forecasting:
+
+#The Holt-Winters and ETS models are recommended for final forecasting, as they provide a more reliable and accurate prediction by capturing both trend and seasonality. The STL decomposition may also be used if the seasonal patterns are well represented.
+
+#Provide the forecast for the next 12 months (point and range) and explain why you feel confident:
+
+#The forecast includes point estimates and prediction intervals that provide a range of expected future values, accounting for uncertainty. Confidence in these forecasts comes from the ability of the Holt-Winters and ETS models to effectively capture both historical trends and seasonality, making them suitable for generating realistic future projections.
+
+
+
+#Make sure you provide an interpretation in simple terms (so a layperson can understand) of what each forecast model is telling you. 
+
+
+#Naive Forecast:The naive model assumes that future values will be similar to the most recent observed values.The prediction seems to have large uncertainty, indicating that it doesn’t capture trend or seasonality well, making it not very reliable for long-term predictions. It's like saying, "The future will look like what just happened," without considering changes over time.
+
+#Mean Forecast:This model predicts future values based on the average of past data.The forecasted line is relatively flat, suggesting that the model assumes no significant changes and predicts a constant average.This is akin to assuming that whatever happened in the past on average will continue indefinitely, which may miss out on real trends and cycles.ETS (Exponential Smoothing):
+
+#The ETS (Error, Trend, Seasonal) model accounts for trend, seasonality, and irregular components in the data.The forecasts here likely follow the overall pattern more accurately, with smaller uncertainty bands.It is saying, "I think I see a repeating pattern and a trend, and I'll predict based on that.Holt-Winters Forecast:
+
+#Holt-Winters method handles both trend and seasonal components effectively.The forecasted values in this model should be more dynamic, capturing both rising and falling seasonal trends.It’s like saying, "I see a regular up-and-down pattern each year and an overall trend, so I'll take both into account."STL + ETS Forecast:
+
+#This approach involves breaking down the time series into seasonal, trend, and irregular components (using STL) and then applying ETS for forecasting.This model captures seasonality in detail before forecasting, leading to potentially more accurate results.The interpretation is similar to combining a "magnifying glass for patterns" (STL) and "smoothing for prediction" (ETS).
+
+
+#The naive and mean models are simple and may not capture trends or seasonal fluctuations effectively.The ETS, Holt-Winters, and STL + ETS models are more sophisticated and attempt to model the trends and seasonal changes, making them generally better for predicting time series that exhibit both trend and seasonality, like the one depicted in your data.For a layperson, think of these models as different strategies for making future predictions: some are simple guesses based on recent history, while others look carefully at repeating patterns and overall trends to make more educated forecasts.
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
